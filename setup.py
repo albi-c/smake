@@ -4,7 +4,7 @@ long_description = """"""
 
 setuptools.setup(
     name="SMake",
-    version="1.0",
+    version="0.0.1",
     author="albi-c",
     description="simple c/c++ build system",
     long_description=long_description,
@@ -18,5 +18,9 @@ setuptools.setup(
     package_dir={"": "."},
     packages=setuptools.find_packages(),
     python_requires=">=3.6",
-    ext_modules=ext_modules
+    entry_points={
+        "console_scripts": {
+            "smake = smake.cli:main"
+        }
+    }
 )
