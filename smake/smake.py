@@ -19,16 +19,16 @@ class Target:
         self.includes = [] if includes is None else includes
     
     def build(self) -> 'Target':
-        print(f"Building {self.name}")
-
         if self.type == TargetType.DYNAMIC:
             return self
+        
+        print(f"Building {self.name}")
 
         targets = [Smake._build(dep) for dep in self.dependencies]
 
         includes = [self.directory]
         for target in targets:
-            for flag in target._compile_params().get("flags"):
+            for flag in target._compile_params().get("flags", []):
                 if flag.startswith("-I"):
                     includes.append(flag[2:])
         
@@ -101,7 +101,7 @@ class Target:
                         break
             
             if rebuild:
-                command = [Smake.CXX] + flags + ["-o", self.name] + libs + objects + libs
+                command = [Smake.CXX] + flags + ["-o", self.name] + libs + objects + libs + libs
                 Dispatcher.run(command)
         
         Dispatcher.wait()
@@ -172,7 +172,7 @@ class Smake:
     
     @staticmethod
     def _compiler(filename: str) -> str:
-        return Smake.CXX if Smake._is_cpp(filename) else Cmake.CC
+        return Smake.CXX if Smake._is_cpp(filename) else Smake.CC
     
     @staticmethod
     def _build(name: str) -> Target:
