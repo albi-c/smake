@@ -9,9 +9,9 @@ class TargetType(Enum):
     DYNAMIC = 2
 
 class Target:
-    def __init__(self, name: str, directory: str, type_: TargetType, files: list = None, dependencies: list = None, includes: list = None):
+    def __init__(self, name: str, directories: list, type_: TargetType, files: list = None, dependencies: list = None, includes: list = None):
         self.name = name
-        self.directory = directory
+        self.directories = directories
         self.type = type_
 
         self.files = [] if files is None else files
@@ -26,7 +26,7 @@ class Target:
 
         targets = [Smake._build(dep) for dep in self.dependencies]
 
-        includes = [self.directory]
+        includes = self.directories
         for target in targets:
             for flag in target._compile_params().get("flags", []):
                 if flag.startswith("-I"):
@@ -57,7 +57,7 @@ class Target:
             ] + [
                 f"-I{inc}" for inc in self.includes
             ] + [
-                f"-I{self.directory}"
+                f"-I{d}" for d in self.directories
             ]
             for target in targets:
                 params = target._compile_params()
@@ -112,7 +112,7 @@ class Target:
     
     def _compile_params(self) -> dict:
         if self.type == TargetType.LIBRARY:
-            return {"flags": [f"-I./{self.directory}"]}
+            return {"flags": [f"-I./{d}" for d in self.directories]}
         
         return {}
         
@@ -150,12 +150,12 @@ class Smake:
     _action_targets = {"clean": "clean"}
 
     @staticmethod
-    def executable(name: str, directory: str, libraries: list = None, includes: list = None):
-        Smake._targets[name] = Target(name, directory, TargetType.EXECUTABLE, Smake._list_files(directory), libraries, includes)
+    def executable(name: str, directories: list, libraries: list = None, includes: list = None):
+        Smake._targets[name] = Target(name, directories, TargetType.EXECUTABLE, Smake._list_files(directories), libraries, includes)
     
     @staticmethod
-    def library(name: str, directory: str, includes: list = None):
-        Smake._targets[name] = Target(name, directory, TargetType.LIBRARY, Smake._list_files(directory), None, includes)
+    def library(name: str, directories: list, includes: list = None):
+        Smake._targets[name] = Target(name, directories, TargetType.LIBRARY, Smake._list_files(directories), None, includes)
     
     @staticmethod
     def extern_library(name: str):
@@ -197,8 +197,12 @@ class Smake:
         return os.path.join(Smake.BUILD, "debug" if Smake.DEBUG else "release", filename)
     
     @staticmethod
-    def _list_files(d: str) -> list:
-        return [os.path.join(dp, f) for dp, dn, filenames in os.walk(d) for f in filenames if os.path.splitext(f)[1] in [".c", ".cpp", ".cc", ".cxx"]]
+    def _list_files(directories: list) -> list:
+        files = []
+        for d in directories:
+            files += [os.path.join(dp, f) for dp, dn, filenames in os.walk(d) for f in filenames if os.path.splitext(f)[1] in [".c", ".cpp", ".cc", ".cxx"]]
+        
+        return files
     
     @staticmethod
     def _find_includes(filename: str, dirs: list) -> list:
