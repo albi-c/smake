@@ -1,3 +1,3 @@
 #pragma once
 
-#define ADD 10
+#include "test2.hpp"

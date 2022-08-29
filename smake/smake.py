@@ -219,5 +219,6 @@ class Smake:
                         f = os.path.join(d, fn)
                         if os.path.isfile(f):
                             includes.append(f)
+                            includes += Smake._find_includes(f, dirs)
         
         return includes
