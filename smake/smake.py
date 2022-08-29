@@ -138,6 +138,16 @@ class Target:
             if os.path.isfile(self.name):
                 os.remove(self.name)
 
+class Alias:
+    def __init__(self, target: str):
+        self.target = target
+    
+    def build(self) -> Target:
+        return Smake._build(self.target)
+    
+    def _clean(self):
+        pass
+
 class Smake:
     CC = "gcc"
     CXX = "g++"
@@ -165,6 +175,10 @@ class Smake:
     def run(target: str):
         Smake._action_targets["run"] = target
         Smake._action_targets["debug"] = target
+    
+    @staticmethod
+    def alias(name: str, target: str):
+        Smake._targets[name] = Alias(target)
     
     @staticmethod
     def _is_cpp(filename: str) -> bool:
