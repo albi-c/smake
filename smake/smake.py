@@ -220,7 +220,7 @@ class Smake:
     
     @staticmethod
     def _find_includes(filename: str, dirs: list) -> list:
-        includes = []
+        includes = set()
         for ln in open(filename, "r").readlines():
             ln = ln.strip()
             if ln.startswith("#include "):
@@ -232,7 +232,8 @@ class Smake:
                     for d in dirs:
                         f = os.path.join(d, fn)
                         if os.path.isfile(f):
-                            includes.append(f)
-                            includes += Smake._find_includes(f, dirs)
+                            includes.add(f)
+                            if filename not in includes:
+                                includes = includes.union(set(Smake._find_includes(f, dirs)))
         
-        return includes
+        return list(includes)
