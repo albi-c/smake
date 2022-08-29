@@ -63,7 +63,7 @@ class Target:
                 params = target._compile_params()
                 flags += params.get("flags", [])
             
-            command = [Smake._compiler(fn)] + flags + ["-c", "-o", obj, fn]
+            command = [Smake._compiler(fn)] + Smake.FLAGS + flags + ["-c", "-o", obj, fn]
             Dispatcher.run(command)
         
         Dispatcher.wait()
@@ -101,7 +101,7 @@ class Target:
                         break
             
             if rebuild:
-                command = [Smake.CXX] + flags + ["-o", self.name] + libs + objects + libs + libs
+                command = [Smake.CXX] + Smake.FLAGS + flags + ["-o", self.name] + libs + objects + libs + libs
                 Dispatcher.run(command)
         
         Dispatcher.wait()
@@ -156,6 +156,8 @@ class Smake:
 
     DEBUG = False
 
+    FLAGS = []
+
     _targets = {}
     _action_targets = {"clean": "clean"}
 
@@ -179,6 +181,10 @@ class Smake:
     @staticmethod
     def alias(name: str, target: str):
         Smake._targets[name] = Alias(target)
+    
+    @staticmethod
+    def flag(flag: str):
+        Smake.FLAGS.append(flag)
     
     @staticmethod
     def _is_cpp(filename: str) -> bool:
