@@ -18,6 +18,7 @@ class Language(Flag):
 class TargetType(Enum):
     EXECUTABLE = auto()
     LIBRARY = auto()
+    CUDA_LIBRARY = auto()
     DYNAMIC = auto()
 
 class Target:
@@ -114,7 +115,7 @@ class Target:
                         break
             
             if rebuild:
-                command = [Smake.CXX] + Smake._get_flags(Language.EXEC) + flags + ["-o", self.name] + libs + objects + libs + libs
+                command = [Smake.LINK] + Smake._get_flags(Language.EXEC) + flags + ["-o", self.name] + libs + objects + libs + libs
                 Dispatcher.run(command)
         
         Dispatcher.wait()
@@ -166,6 +167,8 @@ class Smake:
     CXX = "g++"
     NVCC = "nvcc"
 
+    LINK = "g++"
+
     BUILD = "build"
 
     DEBUG = False
@@ -182,6 +185,10 @@ class Smake:
     @staticmethod
     def library(name: str, directories: list, includes: list = None):
         Smake._targets[name] = Target(name, directories, TargetType.LIBRARY, Smake._list_files(directories), None, includes)
+    
+    @staticmethod
+    def cuda_library(name: str, directories: list, includes: list = None):
+        Smake._targets[name] = Target(name, directories, TargetType.CUDA_LIBRARY, Smake._list_files(directories), None, includes)
     
     @staticmethod
     def extern_library(name: str):
@@ -204,10 +211,6 @@ class Smake:
             Smake.FLAGS[flag] = language
     
     @staticmethod
-    def _is_cpp(filename: str) -> bool:
-        return not filename.endswith(".c")
-    
-    @staticmethod
     def _get_language(filename: str) -> Language:
         if filename.endswith(".c"):
             return Language.C
@@ -219,7 +222,9 @@ class Smake:
     @staticmethod
     def _compiler(filename: str) -> str:
         lang = Smake._get_language(filename)
-        if lang == Language.C:
+        if lang == Language.EXEC:
+            return Smake.LINK
+        elif lang == Language.C:
             return Smake.CC
         elif lang == Language.CPP:
             return Smake.CXX
