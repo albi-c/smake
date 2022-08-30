@@ -1,12 +1,24 @@
-from enum import Enum
+from enum import Enum, Flag, auto
 import os, shutil
 
 from .dispatcher import Dispatcher
 
+VALID_EXTENSIONS = [
+    ".c", ".cpp", ".cu"
+]
+
+class Language(Flag):
+    EXEC = auto()
+    C = auto()
+    CPP = auto()
+    CUDA = auto()
+
+    ALL = EXEC | C | CPP | CUDA
+
 class TargetType(Enum):
-    EXECUTABLE = 0
-    LIBRARY = 1
-    DYNAMIC = 2
+    EXECUTABLE = auto()
+    LIBRARY = auto()
+    DYNAMIC = auto()
 
 class Target:
     def __init__(self, name: str, directories: list, type_: TargetType, files: list = None, dependencies: list = None, includes: list = None):
@@ -51,9 +63,10 @@ class Target:
         for obj, fn in rebuild.items():
             os.makedirs(os.path.dirname(obj), exist_ok=True)
             
+            lang = Smake._get_language(fn)
             flags = [
                 "-g" if Smake.DEBUG else "-O3",
-                "-std=c++20" if Smake._is_cpp(fn) else "-std=c2x"
+                "-std=c++20" if lang == Language.CPP else "-std=c2x" if lang == Language.C else ""
             ] + [
                 f"-I{inc}" for inc in self.includes
             ] + [
@@ -63,7 +76,7 @@ class Target:
                 params = target._compile_params()
                 flags += params.get("flags", [])
             
-            command = [Smake._compiler(fn)] + Smake.FLAGS + flags + ["-c", "-o", obj, fn]
+            command = [Smake._compiler(fn)] + Smake._get_flags(lang) + flags + ["-c", "-o", obj, fn]
             Dispatcher.run(command)
         
         Dispatcher.wait()
@@ -101,7 +114,7 @@ class Target:
                         break
             
             if rebuild:
-                command = [Smake.CXX] + Smake.FLAGS + flags + ["-o", self.name] + libs + objects + libs + libs
+                command = [Smake.CXX] + Smake._get_flags(Language.EXEC) + flags + ["-o", self.name] + libs + objects + libs + libs
                 Dispatcher.run(command)
         
         Dispatcher.wait()
@@ -151,12 +164,13 @@ class Alias:
 class Smake:
     CC = "gcc"
     CXX = "g++"
+    NVCC = "nvcc"
 
     BUILD = "build"
 
     DEBUG = False
 
-    FLAGS = []
+    FLAGS = {}
 
     _targets = {}
     _action_targets = {"clean": "clean"}
@@ -183,16 +197,38 @@ class Smake:
         Smake._targets[name] = Alias(target)
     
     @staticmethod
-    def flag(flag: str):
-        Smake.FLAGS.append(flag)
+    def flag(flag: str, language: Language = Language.ALL):
+        if flag in Smake.FLAGS:
+            Smake.FLAGS[flag] |= language
+        else:
+            Smake.FLAGS[flag] = language
     
     @staticmethod
     def _is_cpp(filename: str) -> bool:
         return not filename.endswith(".c")
     
     @staticmethod
+    def _get_language(filename: str) -> Language:
+        if filename.endswith(".c"):
+            return Language.C
+        elif filename.endswith(".cu"):
+            return Language.CUDA
+        else:
+            return Language.CPP
+    
+    @staticmethod
     def _compiler(filename: str) -> str:
-        return Smake.CXX if Smake._is_cpp(filename) else Smake.CC
+        lang = Smake._get_language(filename)
+        if lang == Language.C:
+            return Smake.CC
+        elif lang == Language.CPP:
+            return Smake.CXX
+        elif lang == Language.CUDA:
+            return Smake.NVCC
+    
+    @staticmethod
+    def _get_flags(language: Language) -> list:
+        return [flag for flag, lang in Smake.FLAGS.items() if lang & language]
     
     @staticmethod
     def _build(name: str) -> Target:
@@ -220,7 +256,7 @@ class Smake:
     def _list_files(directories: list) -> list:
         files = []
         for d in directories:
-            files += [os.path.join(dp, f) for dp, dn, filenames in os.walk(d) for f in filenames if os.path.splitext(f)[1] in [".c", ".cpp", ".cc", ".cxx"]]
+            files += [os.path.join(dp, f) for dp, dn, filenames in os.walk(d) for f in filenames if os.path.splitext(f)[1] in VALID_EXTENSIONS]
         
         return files
     
