@@ -67,7 +67,7 @@ class Target:
             lang = Smake._get_language(fn)
             flags = [
                 "-g" if Smake.DEBUG else "-O3",
-                "-std=c++20" if lang == Language.CPP else "-std=c2x" if lang == Language.C else ""
+                "-std=c++23" if lang == Language.CPP else "-std=c2x" if lang == Language.C else ""
             ] + [
                 f"-I{inc}" for inc in self.includes
             ] + [
@@ -99,7 +99,7 @@ class Target:
         elif self.type == TargetType.EXECUTABLE:
             flags = [
                 "-g" if Smake.DEBUG else "-O3",
-                "-std=c++20"
+                "-std=c++23"
             ]
             libs = []
             for target in targets:
