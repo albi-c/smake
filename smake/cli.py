@@ -12,8 +12,8 @@ def main():
 
     parser.add_argument("-f", "--file", type=str, help="smake configuration file", default="smake.py", required=False)
 
-    parser.add_argument("-d", "--debug", type=bool, help="enable debug mode", required=False)
-    parser.add_argument("-r", "--release", type=bool, help="enable release mode", required=False)
+    parser.add_argument("-d", "--debug", action="store_true", help="enable debug mode", required=False)
+    parser.add_argument("-r", "--release", action="store_true", help="enable release mode", required=False)
 
     parser.add_argument("-V", "--version", action="version", version=f"SMake {__version__}")
 
